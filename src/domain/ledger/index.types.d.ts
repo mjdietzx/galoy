@@ -180,6 +180,11 @@ type TxBaseVolume = {
   incomingBaseAmount: CurrencyBaseAmount
 }
 
+type TxBaseVolumeAmount<S extends WalletCurrency> = {
+  outgoingBaseAmount: PaymentAmount<S>
+  incomingBaseAmount: PaymentAmount<S>
+}
+
 type TxCentsVolume = {
   outgoingCents: UsdCents
   incomingCents: UsdCents
@@ -190,12 +195,21 @@ interface IGetVolumeArgs {
   timestamp: Date
 }
 
-type VolumeSinceArgs = {
+interface IGetVolumeAmountArgs {
   walletId: WalletId
+  walletCurrency: WalletCurrency
   timestamp: Date
 }
+
 type VolumeResult = Promise<TxBaseVolume | LedgerServiceError>
-type GetVolumeSinceFn = (args: VolumeSinceArgs) => VolumeResult
+type GetVolumeSinceFn = (args: IGetVolumeArgs) => VolumeResult
+
+type VolumeAmountResult<S extends WalletCurrency> = Promise<
+  TxBaseVolumeAmount<S> | LedgerServiceError
+>
+type GetVolumeAmountSinceFn<S extends WalletCurrency> = (
+  args: IGetVolumeAmountArgs,
+) => VolumeAmountResult<S>
 
 type RevertLightningPaymentArgs = {
   journalId: LedgerJournalId
@@ -236,13 +250,19 @@ interface ILedgerService {
 
   getWalletBalance(walletId: WalletId): Promise<CurrencyBaseAmount | LedgerServiceError>
 
-  allPaymentVolumeSince(args: IGetVolumeArgs): VolumeResult
+  allPaymentVolumeSince: GetVolumeSinceFn
 
-  externalPaymentVolumeSince(args: IGetVolumeArgs): VolumeResult
+  externalPaymentVolumeSince: GetVolumeSinceFn
 
-  allTxBaseVolumeSince(args: IGetVolumeArgs): VolumeResult
+  intraledgerTxBaseVolumeSince: GetVolumeSinceFn
 
-  intraledgerTxBaseVolumeSince(args: IGetVolumeArgs): VolumeResult
+  allTxBaseVolumeSince: GetVolumeSinceFn
+
+  allPaymentVolumeAmountSince: GetVolumeAmountSinceFn<WalletCurrency>
+
+  externalPaymentVolumeAmountSince: GetVolumeAmountSinceFn<WalletCurrency>
+
+  intraledgerTxBaseVolumeAmountSince: GetVolumeAmountSinceFn<WalletCurrency>
 
   isOnChainTxRecorded({
     walletId,

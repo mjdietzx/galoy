@@ -4,10 +4,10 @@ type TxnTypes = typeof import("./volume").TxnGroups[TxnGroup]
 type LedgerMetadata = {
   type: LedgerTransactionType
   pending: boolean
-  usd: DisplayCurrencyBaseAmount // to be renamed amountDisplayCurrency
 }
 
 type NonIntraledgerLedgerMetadata = LedgerMetadata & {
+  usd: DisplayCurrencyBaseAmount // to be renamed amountDisplayCurrency
   fee: Satoshis
   feeUsd: DisplayCurrencyBaseAmount // to be renamed feeDisplayCurrency
 }
@@ -36,7 +36,7 @@ type AddOnchainSendLedgerMetadata = NonIntraledgerLedgerMetadata & {
 type AddColdStorageLedgerMetadata = NonIntraledgerLedgerMetadata & {
   hash: OnChainTxHash
   payee_addresses: OnChainAddress[]
-  currency: WalletCurrency
+  currency?: WalletCurrency
 }
 
 type AddColdStorageReceiveLedgerMetadata = AddColdStorageLedgerMetadata
@@ -44,6 +44,7 @@ type AddColdStorageReceiveLedgerMetadata = AddColdStorageLedgerMetadata
 type AddColdStorageSendLedgerMetadata = AddColdStorageLedgerMetadata
 
 type IntraledgerBaseMetadata = LedgerMetadata & {
+  usd: DisplayCurrencyBaseAmount // to be renamed amountDisplayCurrency
   memoPayer: string | undefined | null
   username: Username | undefined | null
 }
@@ -66,6 +67,14 @@ type FeeReimbursementLedgerMetadata = {
   pending: boolean
   usd: DisplayCurrencyBaseAmount
   related_journal: LedgerJournalId
+}
+
+type LnRoutingRevenueLedgerMetadata = LedgerMetadata & {
+  feesCollectedOn: string
+}
+
+type LnChannelOpenOrClosingFee = LedgerMetadata & {
+  txid: OnChainTxHash
 }
 
 type LoadLedgerParams = {

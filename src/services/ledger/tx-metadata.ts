@@ -220,7 +220,7 @@ export const LnChannelOpenOrClosingFee = ({
   txId: OnChainTxHash
 }) => {
 
-  const metadata = {
+  const metadata: LnChannelOpenOrClosingFee = {
     type: LedgerTransactionType.Fee,
     pending: false,
     txid: txId
@@ -230,18 +230,71 @@ export const LnChannelOpenOrClosingFee = ({
 }
 
 export const Escrow = () => {
-  const metadata = {
+  const metadata: LedgerMetadata = {
     type: LedgerTransactionType.Escrow,
     pending: false
   }
+  
   return metadata
 }
 
-export const LnRoutingRevenue = ({collectedOn}:{collectedOn:Date}) => {
-  const metadata = {
+export const LnRoutingRevenue = (collectedOn:Date) => {
+  const metadata: LnRoutingRevenueLedgerMetadata = {
     type: LedgerTransactionType.RoutingRevenue,
     feesCollectedOn: collectedOn.toDateString(),
     pending: false
+  }
+
+  return metadata
+}
+
+export const ColdStorageReceiveLedgerMetada = ({
+  onChainTxHash,
+  fee,
+  feeDisplayUsd,
+  amountDisplayUsd,
+  payeeAddresses,
+}: {
+  onChainTxHash: OnChainTxHash
+  fee: BtcPaymentAmount
+  feeDisplayUsd: DisplayCurrencyBaseAmount
+  amountDisplayUsd: DisplayCurrencyBaseAmount
+  payeeAddresses: OnChainAddress[]
+}) => {
+  const metadata: AddColdStorageReceiveLedgerMetadata = {
+    type: LedgerTransactionType.ToColdStorage,
+    pending: false,
+    hash: onChainTxHash,
+    payee_addresses: payeeAddresses,
+    fee: Number(fee.amount) as Satoshis,
+    feeUsd: feeDisplayUsd,
+    usd: amountDisplayUsd,
+  }
+
+  return metadata
+}
+
+export const ColdStorageSendLedgerMetada = ({
+  onChainTxHash,
+  fee,
+  feeDisplayUsd,
+  amountDisplayUsd,
+  payeeAddress,
+}: {
+  onChainTxHash: OnChainTxHash
+  fee: BtcPaymentAmount
+  feeDisplayUsd: DisplayCurrencyBaseAmount
+  amountDisplayUsd: DisplayCurrencyBaseAmount
+  payeeAddress: OnChainAddress
+}) => {
+  const metadata: AddColdStorageSendLedgerMetadata = {
+    type: LedgerTransactionType.ToHotWallet,
+    pending: false,
+    hash: onChainTxHash,
+    payee_addresses: [payeeAddress],
+    fee: Number(fee.amount) as Satoshis,
+    feeUsd: feeDisplayUsd,
+    usd: amountDisplayUsd,
   }
 
   return metadata

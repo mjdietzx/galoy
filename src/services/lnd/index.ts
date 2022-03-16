@@ -447,14 +447,29 @@ export const LndService = (
     }
   }
 
+  const newPayInvoiceViaPaymentDetails = async ({
+    decodedInvoice,
+    btcPaymentAmount,
+    maxFeeAmount,
+  }: {
+    decodedInvoice: LnInvoice
+    btcPaymentAmount: BtcPaymentAmount
+    maxFeeAmount: BtcPaymentAmount
+  }): Promise<PayInvoiceResult | LightningServiceError> =>
+    payInvoiceViaPaymentDetails({
+      decodedInvoice,
+      milliSatsAmount: btcPaymentAmount.amount * 1000n,
+      maxFee: maxFeeAmount.amount,
+    })
+
   const payInvoiceViaPaymentDetails = async ({
     decodedInvoice,
     milliSatsAmount,
     maxFee,
   }: {
     decodedInvoice: LnInvoice
-    milliSatsAmount: MilliSatoshis
-    maxFee: Satoshis
+    milliSatsAmount: MilliSatoshis | bigint
+    maxFee: Satoshis | bigint
   }): Promise<PayInvoiceResult | LightningServiceError> => {
     const paymentDetailsArgs: PayViaPaymentDetailsArgs = {
       lnd: defaultLnd,
@@ -462,7 +477,7 @@ export const LndService = (
       destination: decodedInvoice.destination,
       mtokens: milliSatsAmount.toString(),
       payment: decodedInvoice.paymentSecret as string,
-      max_fee: maxFee,
+      max_fee: Number(maxFee),
       cltv_delta: decodedInvoice.cltvDelta || undefined,
       features: decodedInvoice.features
         ? decodedInvoice.features.map((f) => ({
@@ -541,6 +556,7 @@ export const LndService = (
       cancelInvoice,
       payInvoiceViaRoutes,
       payInvoiceViaPaymentDetails,
+      newPayInvoiceViaPaymentDetails,
     },
   })
 }

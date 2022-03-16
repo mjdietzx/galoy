@@ -195,7 +195,7 @@ describe("EntryBuilder", () => {
         })
         const result = builder.withoutFee().debitLnd(btcAmount).creditAccount({
           accountId: creditorAccountId,
-          amount: usdAmount,
+          usdAmountForBtcDebit: usdAmount,
         })
         expectEntryToEqual(result.debits[lndLedgerAccountId], btcAmount)
         expectEntryToEqual(result.credits[creditorAccountId], usdAmount)
@@ -214,7 +214,7 @@ describe("EntryBuilder", () => {
         })
         const result = builder.withoutFee().debitLnd(btcAmount).creditAccount({
           accountId: creditorAccountId,
-          amount: usdAmount,
+          usdAmountForBtcDebit: usdAmount,
         })
         expectEntryToEqual(result.debits[lndLedgerAccountId], btcAmount)
         expectEntryToEqual(result.credits[creditorAccountId], usdAmount)
@@ -264,7 +264,7 @@ describe("EntryBuilder", () => {
           })
           .creditAccount({
             accountId: creditorAccountId,
-            amount: usdAmount,
+            usdAmountForBtcDebit: usdAmount,
           })
 
         expectEntryToEqual(result.credits[creditorAccountId], usdAmount)
@@ -291,7 +291,7 @@ describe("EntryBuilder", () => {
           })
           .creditAccount({
             accountId: creditorAccountId,
-            amount: btcAmount,
+            btcAmountForUsdDebit: btcAmount,
           })
 
         expectEntryToEqual(result.credits[creditorAccountId], btcAmount)

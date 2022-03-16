@@ -6,7 +6,6 @@ import { MainBook } from "./books"
 import { EntryBuilder, toLedgerAccountId } from "./domain"
 import { persistAndReturnEntry } from "./helpers"
 import * as caching from "./caching"
-import { LnIntraledgerLedgerMetadata } from "./tx-metadata"
 export * from "./tx-metadata"
 
 const ZERO_SATS = {
@@ -122,7 +121,7 @@ export const recordReceive = async <T extends WalletCurrency>({
     const { usd, btc } = amount as { usd: UsdPaymentAmount; btc: BtcPaymentAmount }
     entry = builder.debitLnd(btc).creditAccount({
       accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-      amount: usd,
+      usdAmountForBtcDebit: usd,
     })
   } else {
     entry = builder.debitLnd(amount as BtcPaymentAmount).creditAccount({
@@ -185,7 +184,7 @@ export const recordIntraledger = async <
         })
         .creditAccount({
           accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-          amount: btc,
+          btcAmountForUsdDebit: btc,
         })
     } else {
       entry = builder
@@ -195,7 +194,7 @@ export const recordIntraledger = async <
         })
         .creditAccount({
           accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-          amount: usd,
+          usdAmountForBtcDebit: usd,
         })
     }
   }

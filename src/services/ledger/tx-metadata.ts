@@ -212,3 +212,37 @@ export const LnIntraledgerLedgerMetadata = ({
   }
   return { metadata, debitAccountAdditionalMetadata }
 }
+
+
+export const LnChannelOpenOrClosingFee = ({
+  txId
+}:{
+  txId: OnChainTxHash
+}) => {
+
+  const metadata = {
+    type: LedgerTransactionType.Fee,
+    pending: false,
+    txid: txId
+  }
+
+  return metadata
+}
+
+export const Escrow = () => {
+  const metadata = {
+    type: LedgerTransactionType.Escrow,
+    pending: false
+  }
+  return metadata
+}
+
+export const LnRoutingRevenue = ({collectedOn}:{collectedOn:Date}) => {
+  const metadata = {
+    type: LedgerTransactionType.RoutingRevenue,
+    feesCollectedOn: collectedOn.toDateString(),
+    pending: false
+  }
+
+  return metadata
+}

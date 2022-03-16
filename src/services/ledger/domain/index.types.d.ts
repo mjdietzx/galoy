@@ -23,7 +23,7 @@ type EntryBuilderConfig<M extends MediciEntry> = {
 type EntryBuilderDebitState<M extends MediciEntry> = {
   entry: M
   metadata: TxMetadata
-  fee: BtcPaymentAmount
+  applyFee: (amount: BtcPaymentAmount) => BtcPaymentAmount
   staticAccountIds: StaticAccountIds
 }
 
@@ -38,27 +38,30 @@ type EntryBuilderDebit<M extends MediciEntry> = {
     additionalMetadata?: TxMetadata
   }) => EntryBuilderCredit<M, D>
   debitLnd: (amount: BtcPaymentAmount) => EntryBuilderCreditWithBtcDebit<M>
+  debitColdStorage: (amount: BtcPaymentAmount) => EntryBuilderCreditWithBtcDebit<M>
 }
 
 type EntryBuilderCreditWithUsdDebit<M extends MediciEntry> = {
   creditLnd: (amount: BtcPaymentAmount) => M
+  creditColdStorage: (amount: BtcPaymentAmount) => M
   creditAccount: ({
     accountId,
-    amount,
+    btcAmountForUsdDebit,
   }: {
     accountId: LedgerAccountId
-    amount?: BtcPaymentAmount
+    btcAmountForUsdDebit?: BtcPaymentAmount
   }) => M
 }
 
 type EntryBuilderCreditWithBtcDebit<M extends MediciEntry> = {
   creditLnd: () => M
+  creditColdStorage: () => M
   creditAccount: ({
     accountId,
-    amount,
+    usdAmountForBtcDebit,
   }: {
     accountId: LedgerAccountId
-    amount?: UsdPaymentAmount
+    usdAmountForBtcDebit?: UsdPaymentAmount
   }) => M
 }
 

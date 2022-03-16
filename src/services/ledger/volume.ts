@@ -95,7 +95,7 @@ const txVolumeSince = async ({
   }
 }
 
-export const volume: Partial<ILedgerService> = {
+export const volume = {
   allPaymentVolumeSince: volumeFn("allPaymentVolumeSince"),
   externalPaymentVolumeSince: volumeFn("externalPaymentVolumeSince"),
   intraledgerTxBaseVolumeSince: volumeFn("intraledgerTxBaseVolumeSince"),

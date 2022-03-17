@@ -181,7 +181,7 @@ const EntryBuilderCredit = <M extends MediciEntry>({
         usdAmount: usd,
       }
 
-      debitCurrency === WalletCurrency.Usd ? addUsdToDealer(dealerData) : withdrawUsdFromDealer(dealerData)
+      debitCurrency === WalletCurrency.Usd ? withdrawUsdFromDealer(dealerData) : addUsdToDealer(dealerData)
     }
 
     const creditAmount = accountDescriptor.currency === WalletCurrency.Usd ? usd : applyFee(btc)

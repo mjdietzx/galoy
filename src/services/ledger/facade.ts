@@ -3,14 +3,20 @@ import { UnknownLedgerError } from "@domain/ledger"
 import { WalletCurrency } from "@domain/shared"
 
 import { MainBook } from "./books"
-import { EntryBuilder, toLedgerAccountId } from "./domain"
+import { EntryBuilder, toLedgerAccountDescriptor, toLedgerAccountId } from "./domain"
 import { persistAndReturnEntry } from "./helpers"
 import * as caching from "./caching"
 export * from "./tx-metadata"
 
-const ZERO_SATS = {
-  currency: WalletCurrency.Btc,
-  amount: 0n,
+const ZERO_FEE = {
+  usdProtocolFee: {
+    currency: WalletCurrency.Usd,
+    amount: 0n,
+  },
+  btcProtocolFee: {
+    currency: WalletCurrency.Btc,
+    amount: 0n,
+  },
 } as const
 
 const staticAccountIds = async () => {
@@ -21,48 +27,44 @@ const staticAccountIds = async () => {
   }
 }
 
-type WalletDescriptor<T extends WalletCurrency> = {
-  id: WalletId
-  currency: T
-}
-
 type RecordSendArgs<T extends WalletCurrency> = {
   description: string
   senderWalletDescriptor: WalletDescriptor<T>
-  amount: T extends "BTC"
-    ? BtcPaymentAmount
-    : {
-        usd: UsdPaymentAmount
-        btc: BtcPaymentAmount
-      }
+  amount: {
+    usdWithFee: UsdPaymentAmount
+    btcWithFee: BtcPaymentAmount
+  }
   metadata: SendLedgerMetadata
-  fee?: BtcPaymentAmount
+  fee?: {
+    usdProtocolFee: UsdPaymentAmount
+    btcProtocolFee: BtcPaymentAmount
+  }
 }
 
 type RecordReceiveArgs<T extends WalletCurrency> = {
   description: string
   receiverWalletDescriptor: WalletDescriptor<T>
-  amount: T extends "BTC"
-    ? BtcPaymentAmount
-    : {
-        usd: UsdPaymentAmount
-        btc: BtcPaymentAmount
-      }
+  amount: {
+    usdWithFee: UsdPaymentAmount
+    btcWithFee: BtcPaymentAmount
+  }
   metadata: ReceiveLedgerMetadata
-  fee?: BtcPaymentAmount
+  fee?: {
+    usdProtocolFee: UsdPaymentAmount
+    btcProtocolFee: BtcPaymentAmount
+  }
 }
 
 type RecordIntraledgerArgs<T extends WalletCurrency, V extends WalletCurrency> = {
   description: string
   senderWalletDescriptor: WalletDescriptor<T>
   receiverWalletDescriptor: WalletDescriptor<V>
-  amount: V extends T
-    ? PaymentAmount<T>
-    : {
-        usd: UsdPaymentAmount
-        btc: BtcPaymentAmount
-      }
+  amount: {
+    usdWithFee: UsdPaymentAmount
+    btcWithFee: BtcPaymentAmount
+  }
   metadata: IntraledgerLedgerMetadata
+  additionalDebitMetadata: any
 }
 
 export const recordSend = async <T extends WalletCurrency>({
@@ -72,31 +74,22 @@ export const recordSend = async <T extends WalletCurrency>({
   fee,
   metadata,
 }: RecordSendArgs<T>) => {
-  const actualFee = fee || ZERO_SATS
+  const actualFee = fee || ZERO_FEE
 
   let entry = MainBook.entry(description)
   const builder = EntryBuilder({
     staticAccountIds: await staticAccountIds(),
     entry,
     metadata,
-  }).withFee(actualFee)
+  })
 
-  if (senderWalletDescriptor.currency === WalletCurrency.Usd) {
-    const { usd, btc } = amount as { usd: UsdPaymentAmount; btc: BtcPaymentAmount }
-    entry = builder
-      .debitAccount({
-        accountId: toLedgerAccountId(senderWalletDescriptor.id),
-        amount: usd,
-      })
-      .creditLnd(btc)
-  } else {
-    entry = builder
-      .debitAccount({
-        accountId: toLedgerAccountId(senderWalletDescriptor.id),
-        amount: amount as BtcPaymentAmount,
-      })
-      .creditLnd()
-  }
+  entry = builder
+    .withTotalAmount(amount)
+    .withFee(actualFee)
+    .debitAccount({
+      accountDescriptor: toLedgerAccountDescriptor(senderWalletDescriptor),
+    })
+    .creditLnd()
 
   return persistAndReturnEntry({ entry, hash: metadata.hash })
 }
@@ -108,26 +101,20 @@ export const recordReceive = async <T extends WalletCurrency>({
   fee,
   metadata,
 }: RecordReceiveArgs<T>) => {
-  const actualFee = fee || ZERO_SATS
+  const actualFee = fee || ZERO_FEE
 
   let entry = MainBook.entry(description)
   const builder = EntryBuilder({
     staticAccountIds: await staticAccountIds(),
     entry,
     metadata,
-  }).withFee(actualFee)
+  })
 
-  if (receiverWalletDescriptor.currency === WalletCurrency.Usd) {
-    const { usd, btc } = amount as { usd: UsdPaymentAmount; btc: BtcPaymentAmount }
-    entry = builder.debitLnd(btc).creditAccount({
-      accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-      usdAmountForBtcDebit: usd,
-    })
-  } else {
-    entry = builder.debitLnd(amount as BtcPaymentAmount).creditAccount({
-      accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-    })
-  }
+  entry = builder
+    .withTotalAmount(amount)
+    .withFee(actualFee)
+    .debitLnd()
+    .creditAccount(toLedgerAccountDescriptor(receiverWalletDescriptor))
 
   return persistAndReturnEntry({ entry, hash: metadata.hash })
 }
@@ -155,48 +142,26 @@ export const recordIntraledger = async <
   receiverWalletDescriptor,
   amount,
   metadata,
+  additionalDebitMetadata: additionalMetadata,
 }: RecordIntraledgerArgs<T, V>) => {
   let entry = MainBook.entry(description)
   const builder = EntryBuilder({
     staticAccountIds: await staticAccountIds(),
     entry,
     metadata,
-  }).withoutFee()
+  })
 
-  // @ts-ignore
-  if (senderWalletDescriptor.currency === receiverWalletDescriptor.currency) {
-    entry = builder
-      .debitAccount({
-        accountId: toLedgerAccountId(senderWalletDescriptor.id),
-        amount: amount as PaymentAmount<T>,
-      })
-      .creditAccount({
-        accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-      })
-  } else {
-    const { usd, btc } = amount as { usd: UsdPaymentAmount; btc: BtcPaymentAmount }
+  entry = builder
+    .withTotalAmount(amount)
+    .withFee(ZERO_FEE)
+    .debitAccount({
+      accountDescriptor: toLedgerAccountDescriptor(senderWalletDescriptor),
+      additionalMetadata,
+    })
+    .creditAccount(toLedgerAccountDescriptor(receiverWalletDescriptor))
 
-    if (senderWalletDescriptor.currency === WalletCurrency.Usd) {
-      entry = builder
-        .debitAccount({
-          accountId: toLedgerAccountId(senderWalletDescriptor.id),
-          amount: usd,
-        })
-        .creditAccount({
-          accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-          btcAmountForUsdDebit: btc,
-        })
-    } else {
-      entry = builder
-        .debitAccount({
-          accountId: toLedgerAccountId(senderWalletDescriptor.id),
-          amount: btc,
-        })
-        .creditAccount({
-          accountId: toLedgerAccountId(receiverWalletDescriptor.id),
-          usdAmountForBtcDebit: usd,
-        })
-    }
-  }
-  return persistAndReturnEntry({entry, hash: "hash" in metadata ? metadata.hash : undefined })
+  return persistAndReturnEntry({
+    entry,
+    hash: "hash" in metadata ? metadata.hash : undefined,
+  })
 }

@@ -89,11 +89,9 @@ type ReceiveLedgerMetadata =
   | LnReceiveLedgerMetadata
   | OnChainReceiveLedgerMetadata
 
-type IntraledgerLedgerMetadata = 
+type IntraledgerLedgerMetadata =
   | AddOnChainIntraledgerSendLedgerMetadata
   | AddLnIntraledgerSendLedgerMetadata
   | AddWalletIdIntraledgerSendLedgerMetadata
 
-type SendLedgerMetadata =
-  | AddOnchainSendLedgerMetadata
-  | AddLnSendLedgerMetadata
+type SendLedgerMetadata = AddOnchainSendLedgerMetadata | AddLnSendLedgerMetadata

@@ -34,7 +34,7 @@ export const OnChainSendLedgerMetadata = ({
   feeDisplayUsd,
   amountDisplayUsd,
   payeeAddresses,
-  sendAll
+  sendAll,
 }: {
   onChainTxHash: OnChainTxHash
   fee: BtcPaymentAmount
@@ -108,7 +108,7 @@ export const LnReceiveLedgerMetadata = ({
 export const LnFeeReimbursementReceiveLedgerMetadata = ({
   paymentHash,
   journalId,
-  amountDisplayUsd
+  amountDisplayUsd,
 }: {
   paymentHash: PaymentHash
   journalId: LedgerJournalId
@@ -124,14 +124,13 @@ export const LnFeeReimbursementReceiveLedgerMetadata = ({
   return metadata
 }
 
-
 export const OnChainIntraledgerLedgerMetadata = ({
   amountDisplayUsd,
   payeeAddresses,
   sendAll,
   memoOfPayer,
   senderUsername,
-  recipientUsername
+  recipientUsername,
 }: {
   amountDisplayUsd: DisplayCurrencyBaseAmount
   payeeAddresses: OnChainAddress[]
@@ -151,7 +150,7 @@ export const OnChainIntraledgerLedgerMetadata = ({
   }
   const debitAccountAdditionalMetadata = {
     memoPayer: memoOfPayer,
-    username: recipientUsername
+    username: recipientUsername,
   }
   return { metadata, debitAccountAdditionalMetadata }
 }
@@ -160,7 +159,7 @@ export const WalletIdIntraledgerLedgerMetadata = ({
   amountDisplayUsd,
   memoOfPayer,
   senderUsername,
-  recipientUsername
+  recipientUsername,
 }: {
   amountDisplayUsd: DisplayCurrencyBaseAmount
   memoOfPayer: string | null
@@ -175,7 +174,7 @@ export const WalletIdIntraledgerLedgerMetadata = ({
     username: senderUsername,
   }
   const debitAccountAdditionalMetadata = {
-    username: recipientUsername
+    username: recipientUsername,
   }
 
   return { metadata, debitAccountAdditionalMetadata }
@@ -187,7 +186,7 @@ export const LnIntraledgerLedgerMetadata = ({
   senderUsername,
   recipientUsername,
   pubkey,
-  paymentHash
+  paymentHash,
 }: {
   amountDisplayUsd: DisplayCurrencyBaseAmount
   payeeAddresses: OnChainAddress[]
@@ -204,26 +203,20 @@ export const LnIntraledgerLedgerMetadata = ({
     memoPayer: null,
     username: senderUsername,
     hash: paymentHash,
-    pubkey
+    pubkey,
   }
   const debitAccountAdditionalMetadata = {
     memoPayer: memoOfPayer,
-    username: recipientUsername
+    username: recipientUsername,
   }
   return { metadata, debitAccountAdditionalMetadata }
 }
 
-
-export const LnChannelOpenOrClosingFee = ({
-  txId
-}:{
-  txId: OnChainTxHash
-}) => {
-
+export const LnChannelOpenOrClosingFee = ({ txId }: { txId: OnChainTxHash }) => {
   const metadata: LnChannelOpenOrClosingFee = {
     type: LedgerTransactionType.Fee,
     pending: false,
-    txid: txId
+    txid: txId,
   }
 
   return metadata
@@ -232,17 +225,17 @@ export const LnChannelOpenOrClosingFee = ({
 export const Escrow = () => {
   const metadata: LedgerMetadata = {
     type: LedgerTransactionType.Escrow,
-    pending: false
+    pending: false,
   }
-  
+
   return metadata
 }
 
-export const LnRoutingRevenue = (collectedOn:Date) => {
+export const LnRoutingRevenue = (collectedOn: Date) => {
   const metadata: LnRoutingRevenueLedgerMetadata = {
     type: LedgerTransactionType.RoutingRevenue,
     feesCollectedOn: collectedOn.toDateString(),
-    pending: false
+    pending: false,
   }
 
   return metadata

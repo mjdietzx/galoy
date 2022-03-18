@@ -1,6 +1,6 @@
 import { AmountCalculator, WalletCurrency } from "@domain/shared"
 
-import { coldStorageAccountDescriptor, coldStorageAccountId, lndLedgerAccountDescriptor, lndLedgerAccountId } from "./accounts"
+import { coldStorageAccountDescriptor, lndLedgerAccountDescriptor } from "./accounts"
 
 export const ZERO_SATS = {
   currency: WalletCurrency.Btc,
@@ -9,30 +9,35 @@ export const ZERO_SATS = {
 
 export const ZERO_CENTS = {
   currency: WalletCurrency.Usd,
-  amount: 0n
+  amount: 0n,
 }
 const calc = AmountCalculator()
-
 
 export const EntryBuilder = <M extends MediciEntry>({
   staticAccountIds,
   entry,
   metadata,
 }: EntryBuilderConfig<M>) => {
-  const withTotalAmount = ({ usdWithFee, btcWithFee }: { usdWithFee: UsdPaymentAmount, btcWithFee: BtcPaymentAmount }) => {
+  const withTotalAmount = ({
+    usdWithFee,
+    btcWithFee,
+  }: {
+    usdWithFee: UsdPaymentAmount
+    btcWithFee: BtcPaymentAmount
+  }) => {
     return EntryBuilderFee({
       entry,
       metadata,
       staticAccountIds,
       amountWithFee: {
         usdWithFee,
-        btcWithFee
-      }
+        btcWithFee,
+      },
     })
   }
 
   return {
-    withTotalAmount
+    withTotalAmount,
   }
 }
 
@@ -40,12 +45,15 @@ const EntryBuilderFee = <M extends MediciEntry>({
   entry,
   metadata,
   staticAccountIds,
-  amountWithFee: {
-    usdWithFee,
-    btcWithFee
-  }
+  amountWithFee: { usdWithFee, btcWithFee },
 }: EntryBuilderFeeState<M>): EntryBuilderFee<M> => {
-  const withFee = ({btcProtocolFee, usdProtocolFee}:{btcProtocolFee: BtcPaymentAmount, usdProtocolFee: UsdPaymentAmount}) => {
+  const withFee = ({
+    btcProtocolFee,
+    usdProtocolFee,
+  }: {
+    btcProtocolFee: BtcPaymentAmount
+    usdProtocolFee: UsdPaymentAmount
+  }) => {
     if (btcProtocolFee.amount > 0n) {
       entry.credit(staticAccountIds.bankOwnerAccountId, Number(btcProtocolFee.amount), {
         ...metadata,
@@ -55,10 +63,22 @@ const EntryBuilderFee = <M extends MediciEntry>({
 
     const usdWithOutFee = calc.sub(usdWithFee, usdProtocolFee)
     const btcWithOutFee = calc.sub(btcWithFee, btcProtocolFee)
-    return EntryBuilderDebit({ metadata, entry, amountWithFee:{usdWithFee,btcWithFee},amountWithOutFee:{usdWithOutFee,btcWithOutFee}, staticAccountIds })
+    return EntryBuilderDebit({
+      metadata,
+      entry,
+      amountWithFee: { usdWithFee, btcWithFee },
+      amountWithOutFee: { usdWithOutFee, btcWithOutFee },
+      staticAccountIds,
+    })
   }
 
-  const withFeeFromBank = ({btcProtocolFee, usdProtocolFee}:{btcProtocolFee: BtcPaymentAmount, usdProtocolFee: UsdPaymentAmount}) => {
+  const withFeeFromBank = ({
+    btcProtocolFee,
+    usdProtocolFee,
+  }: {
+    btcProtocolFee: BtcPaymentAmount
+    usdProtocolFee: UsdPaymentAmount
+  }) => {
     if (btcProtocolFee.amount > 0n) {
       entry.debit(staticAccountIds.bankOwnerAccountId, Number(btcProtocolFee.amount), {
         ...metadata,
@@ -68,12 +88,18 @@ const EntryBuilderFee = <M extends MediciEntry>({
 
     const usdWithOutFee = calc.add(usdWithFee, usdProtocolFee)
     const btcWithOutFee = calc.add(btcWithFee, btcProtocolFee)
-    return EntryBuilderDebit({ metadata, entry, amountWithFee:{usdWithFee,btcWithFee},amountWithOutFee:{usdWithOutFee,btcWithOutFee}, staticAccountIds })
+    return EntryBuilderDebit({
+      metadata,
+      entry,
+      amountWithFee: { usdWithFee, btcWithFee },
+      amountWithOutFee: { usdWithOutFee, btcWithOutFee },
+      staticAccountIds,
+    })
   }
 
   return {
     withFee,
-    withFeeFromBank
+    withFeeFromBank,
   }
 }
 
@@ -81,14 +107,8 @@ const EntryBuilderDebit = <M extends MediciEntry>({
   entry,
   metadata,
   staticAccountIds,
-  amountWithFee: {
-    usdWithFee,
-    btcWithFee
-  },
-  amountWithOutFee: {
-    usdWithOutFee,
-    btcWithOutFee
-  }
+  amountWithFee: { usdWithFee, btcWithFee },
+  amountWithOutFee: { usdWithOutFee, btcWithOutFee },
 }: EntryBuilderDebitState<M>): EntryBuilderDebit<M> => {
   const debitAccount = <T extends WalletCurrency>({
     accountDescriptor,
@@ -106,8 +126,7 @@ const EntryBuilderDebit = <M extends MediciEntry>({
         ...debitMetadata,
         currency: btcWithFee.currency,
       })
-    } 
-    else {
+    } else {
       entry.debit(accountDescriptor.id, Number(usdWithFee.amount), {
         ...debitMetadata,
         currency: usdWithFee.currency,
@@ -120,28 +139,28 @@ const EntryBuilderDebit = <M extends MediciEntry>({
       debitCurrency: accountDescriptor.currency,
       amountWithOutFee: {
         usdWithOutFee,
-        btcWithOutFee
+        btcWithOutFee,
       },
       amountWithFee: {
         usdWithFee,
-        btcWithFee
+        btcWithFee,
       },
       staticAccountIds,
     }) as EntryBuilderCredit<M>
   }
 
   const debitLnd = (): EntryBuilderCredit<M> => {
-    return debitAccount({accountDescriptor: lndLedgerAccountDescriptor})
+    return debitAccount({ accountDescriptor: lndLedgerAccountDescriptor })
   }
 
   const debitColdStorage = (): EntryBuilderCredit<M> => {
-    return debitAccount({accountDescriptor: coldStorageAccountDescriptor})
+    return debitAccount({ accountDescriptor: coldStorageAccountDescriptor })
   }
 
   return {
     debitAccount,
     debitLnd,
-    debitColdStorage
+    debitColdStorage,
   }
 }
 
@@ -150,11 +169,11 @@ type EntryBuilderCreditState<M extends MediciEntry> = {
   metadata: TxMetadata
   debitCurrency: WalletCurrency
   amountWithOutFee: {
-    usdWithOutFee: UsdPaymentAmount,
+    usdWithOutFee: UsdPaymentAmount
     btcWithOutFee: BtcPaymentAmount
   }
   amountWithFee: {
-    usdWithFee: UsdPaymentAmount,
+    usdWithFee: UsdPaymentAmount
     btcWithFee: BtcPaymentAmount
   }
   staticAccountIds: {
@@ -166,14 +185,8 @@ type EntryBuilderCreditState<M extends MediciEntry> = {
 const EntryBuilderCredit = <M extends MediciEntry>({
   entry,
   metadata,
-  amountWithOutFee: {
-    usdWithOutFee,
-    btcWithOutFee,
-  },
-  amountWithFee: {
-    usdWithFee,
-    btcWithFee
-  },
+  amountWithOutFee: { usdWithOutFee, btcWithOutFee },
+  amountWithFee: { usdWithFee, btcWithFee },
   debitCurrency,
   staticAccountIds,
 }: EntryBuilderCreditState<M>): EntryBuilderCredit<M> => {
@@ -181,43 +194,54 @@ const EntryBuilderCredit = <M extends MediciEntry>({
   const creditColdStorage = () => creditAccount(coldStorageAccountDescriptor)
 
   const creditAccount = <T extends WalletCurrency>(
-    accountDescriptor: LedgerAccountDescriptor<T>) => {
-    
-    if (debitCurrency === WalletCurrency.Usd && accountDescriptor.currency === WalletCurrency.Usd && usdWithFee.amount != usdWithOutFee.amount) {
+    accountDescriptor: LedgerAccountDescriptor<T>,
+  ) => {
+    if (
+      debitCurrency === WalletCurrency.Usd &&
+      accountDescriptor.currency === WalletCurrency.Usd &&
+      usdWithFee.amount != usdWithOutFee.amount
+    ) {
       const dealerData = {
         entry,
         metadata,
         staticAccountIds,
-        btcAmount: calc.sub(btcWithFee,btcWithOutFee),
-        usdAmount: calc.sub(usdWithFee,usdWithOutFee)
+        btcAmount: calc.sub(btcWithFee, btcWithOutFee),
+        usdAmount: calc.sub(usdWithFee, usdWithOutFee),
       }
       withdrawUsdFromDealer(dealerData)
     }
-    
-    if (debitCurrency === WalletCurrency.Usd && accountDescriptor.currency === WalletCurrency.Btc) {
+
+    if (
+      debitCurrency === WalletCurrency.Usd &&
+      accountDescriptor.currency === WalletCurrency.Btc
+    ) {
       const dealerData = {
         entry,
         metadata,
         staticAccountIds,
         btcAmount: btcWithFee,
-        usdAmount: usdWithFee
+        usdAmount: usdWithFee,
       }
       withdrawUsdFromDealer(dealerData)
     }
-     
-    if (debitCurrency === WalletCurrency.Btc && accountDescriptor.currency === WalletCurrency.Usd) {
+
+    if (
+      debitCurrency === WalletCurrency.Btc &&
+      accountDescriptor.currency === WalletCurrency.Usd
+    ) {
       const dealerData = {
         entry,
         metadata,
         staticAccountIds,
         btcAmount: btcWithOutFee,
-        usdAmount: usdWithOutFee
+        usdAmount: usdWithOutFee,
       }
       addUsdToDealer(dealerData)
     }
 
-    const creditAmount = accountDescriptor.currency === WalletCurrency.Usd ? usdWithOutFee : btcWithOutFee
-    
+    const creditAmount =
+      accountDescriptor.currency === WalletCurrency.Usd ? usdWithOutFee : btcWithOutFee
+
     entry.credit(accountDescriptor.id, Number(creditAmount.amount), {
       ...metadata,
       currency: creditAmount.currency,
@@ -228,7 +252,7 @@ const EntryBuilderCredit = <M extends MediciEntry>({
   return {
     creditLnd,
     creditAccount,
-    creditColdStorage
+    creditColdStorage,
   }
 }
 

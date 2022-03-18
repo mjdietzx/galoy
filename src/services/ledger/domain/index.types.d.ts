@@ -36,8 +36,20 @@ type EntryBuilderFeeState<M extends MediciEntry> = {
 }
 
 type EntryBuilderFee<M extends MediciEntry> = {
-  withFee: ({btcProtocolFee,usdProtocolFee}:{btcProtocolFee:BtcPaymentAmount, usdProtocolFee:UsdPaymentAmount}) => EntryBuilderDebit<M>
-  withFeeFromBank: ({btcProtocolFee,usdProtocolFee}:{btcProtocolFee:BtcPaymentAmount, usdProtocolFee:UsdPaymentAmount}) => EntryBuilderDebit<M>
+  withFee: ({
+    btcProtocolFee,
+    usdProtocolFee,
+  }: {
+    btcProtocolFee: BtcPaymentAmount
+    usdProtocolFee: UsdPaymentAmount
+  }) => EntryBuilderDebit<M>
+  withFeeFromBank: ({
+    btcProtocolFee,
+    usdProtocolFee,
+  }: {
+    btcProtocolFee: BtcPaymentAmount
+    usdProtocolFee: UsdPaymentAmount
+  }) => EntryBuilderDebit<M>
 }
 
 type EntryBuilderDebitState<M extends MediciEntry> = {
@@ -81,7 +93,9 @@ type EntryBuilderCreditWithUsdDebit<M extends MediciEntry> = {
 type EntryBuilderCredit<M extends MediciEntry> = {
   creditLnd: () => M
   creditColdStorage: () => M
-  creditAccount: <C extends WalletCurrency>(accountDescriptor: LedgerAccountDescriptor<C>) => M
+  creditAccount: <C extends WalletCurrency>(
+    accountDescriptor: LedgerAccountDescriptor<C>,
+  ) => M
 }
 
 type BaseLedgerTransactionMetadata = {

@@ -1,4 +1,4 @@
-import { EntryBuilder, lndLedgerAccountId, ZERO_SATS } from "@services/ledger/domain"
+import { EntryBuilder, lndLedgerAccountId, ZERO_SATS, ZERO_CENTS } from "@services/ledger/domain"
 import { WalletCurrency, AmountCalculator } from "@domain/shared"
 
 class TestMediciEntry {
@@ -23,6 +23,22 @@ describe("EntryBuilder", () => {
     expect(entry.amount).toEqual(Number(amount.amount))
     expect(entry.metadata.currency).toEqual(amount.currency)
   }
+
+  const expectJournalToBeBalanced = (journal) => {
+    let usdCredits = 0
+    let btcCredits = 0
+    let usdDebits = 0
+    let btcDebits = 0
+
+    Object.values<any>(journal.debits).forEach(entry => entry.metadata.currency === WalletCurrency.Usd ? usdDebits += entry.amount : btcDebits += entry.amount)
+    Object.values<any>(journal.credits).forEach(entry => entry.metadata.currency === WalletCurrency.Usd ? usdCredits += entry.amount : btcCredits += entry.amount)
+
+    expect(usdCredits).toEqual(usdDebits)
+    expect(btcCredits).toEqual(btcDebits)
+    console.log(usdCredits)
+    console.log(btcCredits)
+  }
+
   const calc = AmountCalculator()
   const staticAccountIds = {
     bankOwnerAccountId: "bankOwnerAccountId" as LedgerAccountId,
@@ -62,13 +78,28 @@ describe("EntryBuilder", () => {
   }
 
   const amount = {
-    btc: btcAmount,
-    usd: usdAmount
+    btcWithFee: btcAmount,
+    usdWithFee: usdAmount
   }
   const btcFee = {
     currency: WalletCurrency.Btc,
-    amount: 111n,
+    amount: 110n,
   }
+  const usdFee = {
+    currency: WalletCurrency.Usd,
+    amount: 1n,
+  }
+
+  const protocolFee = {
+    usdProtocolFee: usdFee,
+    btcProtocolFee: btcFee
+  }
+
+  const ZERO_FEE = {
+    usdProtocolFee: ZERO_CENTS,
+    btcProtocolFee: ZERO_SATS
+  }
+
   const metadata = {
     currency: "BAD CURRENCY",
     some: "some",
@@ -85,11 +116,12 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(ZERO_SATS)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
           .debitAccount({accountDescriptor:btcDebitorAccountDescriptor})
           .creditLnd()
-
+          
+        expectJournalToBeBalanced(result)
         expectEntryToEqual(result.credits[lndLedgerAccountId], btcAmount)
         expectEntryToEqual(result.debits[debitorAccountId], btcAmount)
         expect(result.debits[staticAccountIds.bankOwnerAccountId]).toBeUndefined()
@@ -103,11 +135,12 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(btcFee)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(protocolFee)
           .debitAccount({accountDescriptor:btcDebitorAccountDescriptor})
           .creditLnd()
 
+          expectJournalToBeBalanced(result)
           expectEntryToEqual(result.credits[staticAccountIds.bankOwnerAccountId], btcFee)
           expectEntryToEqual(
             result.credits[lndLedgerAccountId],
@@ -126,11 +159,12 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(ZERO_SATS)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
           .debitLnd()
           .creditAccount(btcCreditorAccountDescriptor)
 
+        expectJournalToBeBalanced(result)
         expectEntryToEqual(result.debits[lndLedgerAccountId], btcAmount)
         expectEntryToEqual(result.credits[creditorAccountId], btcAmount)
       })
@@ -142,8 +176,13 @@ describe("EntryBuilder", () => {
           entry,
           metadata,
         })
-        const result = builder.withFee(btcFee).withAmount(amount).debitLnd().creditAccount(btcCreditorAccountDescriptor)
+        const result = builder
+          .withTotalAmount(amount)
+          .withFee(protocolFee)
+          .debitLnd()
+          .creditAccount(btcCreditorAccountDescriptor)
 
+        expectJournalToBeBalanced(result)
         expect(result.credits[staticAccountIds.bankOwnerAccountId].amount).toEqual(
           Number(btcFee.amount),
         )
@@ -163,13 +202,14 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(ZERO_SATS)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
           .debitAccount({
             accountDescriptor: usdDebitorAccountDescriptor,
           })
           .creditLnd()
-
+        
+        expectJournalToBeBalanced(result)
         expectEntryToEqual(result.credits[lndLedgerAccountId], btcAmount)
         expectEntryToEqual(result.debits[debitorAccountId], usdAmount)
         expectEntryToEqual(result.debits[staticAccountIds.dealerBtcAccountId], btcAmount)
@@ -186,13 +226,14 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(btcFee)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(protocolFee)
           .debitAccount({
             accountDescriptor: usdDebitorAccountDescriptor,
           })
           .creditLnd()
 
+        expectJournalToBeBalanced(result)
         expectEntryToEqual(
           result.credits[lndLedgerAccountId],
           calc.sub(btcAmount, btcFee),
@@ -214,7 +255,13 @@ describe("EntryBuilder", () => {
           entry,
           metadata,
         })
-        const result = builder.withFee(ZERO_SATS).withAmount(amount).debitLnd().creditAccount(usdCreditorAccountDescriptor)
+        const result = builder
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
+          .debitLnd()
+          .creditAccount(usdCreditorAccountDescriptor)
+        
+        expectJournalToBeBalanced(result)
         expectEntryToEqual(result.debits[lndLedgerAccountId], btcAmount)
         expectEntryToEqual(result.credits[creditorAccountId], usdAmount)
         expectEntryToEqual(result.credits[staticAccountIds.dealerBtcAccountId], btcAmount)
@@ -230,13 +277,18 @@ describe("EntryBuilder", () => {
           entry,
           metadata,
         })
-        const result = builder.withFee(btcFee).withAmount(amount).debitLnd().creditAccount(usdCreditorAccountDescriptor)
+        const result = builder
+          .withTotalAmount(amount)
+          .withFee(protocolFee)
+          .debitLnd()
+          .creditAccount(usdCreditorAccountDescriptor)
 
+        expectJournalToBeBalanced(result)
         expectEntryToEqual(result.debits[lndLedgerAccountId], btcAmount)
-        expectEntryToEqual(result.credits[creditorAccountId], usdAmount)
-        expectEntryToEqual(result.credits[staticAccountIds.dealerBtcAccountId], btcAmount)
+        expectEntryToEqual(result.credits[creditorAccountId], calc.sub(usdAmount,usdFee))
+        expectEntryToEqual(result.credits[staticAccountIds.dealerBtcAccountId], calc.sub(btcAmount,btcFee))
         expect(result.debits[staticAccountIds.dealerBtcAccountId]).toBeUndefined()
-        expectEntryToEqual(result.debits[staticAccountIds.dealerUsdAccountId], usdAmount)
+        expectEntryToEqual(result.debits[staticAccountIds.dealerUsdAccountId], calc.sub(usdAmount,usdFee))
         expect(result.credits[staticAccountIds.dealerUsdAccountId]).toBeUndefined()
       })
     })
@@ -252,8 +304,8 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(ZERO_SATS)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
           .debitAccount({
             accountDescriptor: btcDebitorAccountDescriptor
           })
@@ -271,13 +323,14 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(ZERO_SATS)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
           .debitAccount({
             accountDescriptor: btcDebitorAccountDescriptor,
           })
           .creditAccount(usdCreditorAccountDescriptor)
-
+        console.log("Btc to usd")
+        expectJournalToBeBalanced(result)
         expectEntryToEqual(result.credits[creditorAccountId], usdAmount)
         expectEntryToEqual(result.debits[debitorAccountId], btcAmount)
         expectEntryToEqual(result.credits[staticAccountIds.dealerBtcAccountId], btcAmount)
@@ -295,13 +348,13 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(ZERO_SATS)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
           .debitAccount({
             accountDescriptor: usdDebitorAccountDescriptor
           })
           .creditAccount(btcCreditorAccountDescriptor)
-
+          expectJournalToBeBalanced(result)
         expectEntryToEqual(result.credits[creditorAccountId], btcAmount)
         expectEntryToEqual(result.debits[debitorAccountId], usdAmount)
         expectEntryToEqual(result.debits[staticAccountIds.dealerBtcAccountId], btcAmount)
@@ -318,13 +371,13 @@ describe("EntryBuilder", () => {
           metadata,
         })
         const result = builder
-          .withFee(ZERO_SATS)
-          .withAmount(amount)
+          .withTotalAmount(amount)
+          .withFee(ZERO_FEE)
           .debitAccount({
             accountDescriptor: usdDebitorAccountDescriptor
           })
           .creditAccount(usdCreditorAccountDescriptor)
-
+          expectJournalToBeBalanced(result)
         expectEntryToEqual(result.credits[creditorAccountId], usdAmount)
         expectEntryToEqual(result.debits[debitorAccountId], usdAmount)
       })
@@ -340,8 +393,8 @@ describe("EntryBuilder", () => {
         metadata,
       })
       const result = builder
-        .withFee(btcFee)
-        .withAmount(amount)
+        .withTotalAmount(amount)
+        .withFee(ZERO_FEE)
         .debitAccount({
           accountDescriptor: btcDebitorAccountDescriptor,
           additionalMetadata: {
@@ -350,7 +403,7 @@ describe("EntryBuilder", () => {
           },
         })
         .creditLnd()
-
+        expectJournalToBeBalanced(result)
       expect(result.debits[debitorAccountId].metadata).toEqual(
         expect.objectContaining({
           some: "some",
